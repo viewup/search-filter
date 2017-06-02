@@ -41,6 +41,15 @@ if (!defined('SEARCHANDFILTER_VERSION_KEY'))
 if (!defined('SF_FPRE'))
     define('SF_FPRE', 'of');
 
+// Meta prefix
+if (!defined('SF_METAPRE'))
+    define('SF_METAPRE', 'meta_');
+
+// ACF prefix
+if (!defined('SF_ACFPRE'))
+    define('SF_ACFPRE', 'acf_');
+
+
 add_option(SEARCHANDFILTER_VERSION_KEY, SEARCHANDFILTER_VERSION_NUM);
 
 /*
@@ -72,6 +81,9 @@ if (!class_exists('SearchAndFilter')) {
             //filter post type & date if it is set
             add_filter('pre_get_posts', array($this, 'filter_query_post_types'));
             add_filter('pre_get_posts', array($this, 'filter_query_post_date'));
+
+            //filter post meta if set
+            add_filter('pre_get_posts', array($this, 'filter_query_post_meta'));
 
             //add_filter('pre_get_posts',array($this, 'fix_blank_search')); //temporaril disabled
 
@@ -351,6 +363,48 @@ if (!class_exists('SearchAndFilter')) {
             return $query;
         }
 
+        /**
+         * ADD meta filter to the query
+         * @see https://www.advancedcustomfields.com/resources/creating-wp-archive-custom-field-filter/
+         * @param WP_Query $query
+         * @return WP_Query $query
+         */
+        function filter_query_post_meta($query)
+        {
+            // stop if is admin or isn't main query
+            if (is_admin() || !$query->is_main_query()) return $query;
+
+            // get meta query
+            $meta_query = $query->get('meta_query');
+
+            // loop over params
+            foreach ($_GET as $field => $value) {
+
+                // Checks if is a meta field and has data
+                if (!$value || strpos($field, SF_METAPRE) !== 0) continue;
+
+                // Get the meta key
+                $key = substr($field, strlen(SF_METAPRE));
+
+                // TODO: uses AND and OR relation
+                // Get values
+                // example: ?meta_foo=x,y
+                $values = explode(',', $_GET[$field]);
+
+                // append meta query
+                $meta_query[] = array(
+                    'key' => $key,
+                    'value' => $values,
+                    'compare' => 'IN',
+                );
+            }
+
+            // update meta query
+            $query->set('meta_query', $meta_query);
+
+            return $query;
+        }
+
 
         function limit_date_range_query($where)
         {
@@ -435,9 +489,10 @@ if (!class_exists('SearchAndFilter')) {
             return $query;
         }
 
-        /*
+
+        /**
          * check to set defaults - to be called after the shortcodes have been init so we can grab the wanted list of fields
-        */
+         */
         public function set_defaults()
         {
             global $wp_query;
@@ -509,6 +564,12 @@ if (!class_exists('SearchAndFilter')) {
                     }
                 }
             }
+            //loop through meta queries
+            foreach ($wp_query->meta_query->queries as $key => $query) {
+                if (!is_int($key)) continue;
+                if (!in_array(SF_METAPRE . $query['key'], $this->taxonomylist)) continue;
+                $this->defaults[SF_FPRE . SF_METAPRE . $query['key']] = $query['value'];
+            }
 
             $post_date = array("", "");
             if (isset($wp_query->query['post_date'])) {
@@ -527,9 +588,9 @@ if (!class_exists('SearchAndFilter')) {
             $this->defaults[SF_FPRE . 'post_types'] = $post_types;
         }
 
-        /*
+        /**
          * check to see if form has been submitted and handle vars
-        */
+         */
 
         public function check_posts()
         {
@@ -637,6 +698,35 @@ if (!class_exists('SearchAndFilter')) {
                             $key = substr($key, strlen(SF_FPRE));
                         }
 
+                        $isTaxonomy = true;
+
+                        /**
+                         * Checks META
+                         */
+                        if (strpos($key, SF_METAPRE) === 0) {
+
+                            // Checks meta
+                            $the_meta = $val;
+
+                            $meta = array();
+
+                            //make the meta an array for easy looping
+                            if (!is_array($the_meta)) {
+                                $meta[] = $the_meta;
+                            } else {
+                                $meta = $the_meta;
+                            }
+
+                            $operator = $this->get_operator($_POST[SF_FPRE . $key . '_operator']);
+                            $metas = implode($operator, $meta);
+
+                            // Checks if meta is valid before insert
+                            if ($metas)
+                                $this->add_urlparam($key, $metas);
+                            continue;
+                        }
+
+                        // Checks custom taxonomy (DEFAULT)
                         $the_post_tax = $val;
 
                         $post_tax = array();
@@ -898,6 +988,20 @@ if (!class_exists('SearchAndFilter')) {
                     $returnvar .= $this->build_post_type_element($types, $labels, $post_types, $field, $all_items_labels, $i);
                 } else if ($field == 'post_date') {
                     $returnvar .= $this->build_post_date_element($labels, $i, $types, $field);
+                } else if (substr($field, 0, strlen(SF_METAPRE)) === SF_METAPRE) {
+                    $returnvar .= $this->build_meta_element([
+                        'field' => $field,
+                        'label' => $labels[$i],
+                        'type' => $types[$i],
+                        'all_items_label' => $all_items_labels[$i]
+                    ]);
+                } else if (substr($field, 0, strlen(SF_ACFPRE)) === SF_ACFPRE) {
+                    $returnvar .= $this->build_acf_element([
+                        'field' => $field,
+                        'label' => $labels[$i],
+                        'type' => $types[$i],
+                        'all_items_label' => $all_items_labels[$i]
+                    ]);
                 } else {
                     $returnvar .= $this->build_taxonomy_element($types, $labels, $field, $hierarchical, $hide_empty, $show_count, $order_by, $order_dir, $operators, $all_items_labels, $i);
                 }
@@ -1148,6 +1252,84 @@ if (!class_exists('SearchAndFilter')) {
             return $returnvar;
         }
 
+        // TODO: Renders ACF filter
+        function build_acf_element($args = [])
+        {
+            //$groups = apply_filters('acf/get_field_groups', array());
+            //foreach ($groups as $i => $group) {
+            //    $groups[$i]['fields'] = $fields = apply_filters('acf/field_group/get_fields', array(), $group['id']);
+            //}
+            $field = $args['field'];
+            $newArgs = array_merge($args,
+                [
+                    'field' => str_replace(SF_ACFPRE, SF_METAPRE, $field)
+                ]);
+            return $this->build_meta_element($newArgs);
+        }
+
+        // Renders meta filter
+        function build_meta_element($data = [])
+        {
+            global $wpdb;
+            $html = '';
+
+            // Extract data from $data
+            $field = $data['field'];
+            $label = $data['label'];
+            $all_items_label = $data['all_items_label'];
+            $type = $data['type'];
+
+            $name = substr($field, strlen(SF_METAPRE), strlen($field));
+
+            $querystr = "
+                SELECT DISTINCT meta_value 
+                FROM {$wpdb->postmeta} 
+                WHERE meta_key LIKE '{$name}' 
+                ORDER BY meta_value ASC
+            ";
+
+            $query = $wpdb->get_results($querystr, OBJECT);
+            $choices = [];
+            foreach ($query as $item)
+                array_push($choices, (object)[
+                    'term_id' => $item->meta_value,
+                    'cat_name' => $item->meta_value
+                ]);
+
+            $html .= "<li>";
+
+            if ($label)
+                $html .= "<h4>{$label}</h4>";
+
+
+            $labels = (object)[
+                'name' => $name,
+                'singular_name' => $name,
+                'search_items' => __("Search {$name}"),
+                'all_items' => $all_items_label ? $all_items_label : __("All {$name}")
+            ];
+
+            switch ($type) {
+
+                case 'checkbox':
+                    $html .= $this->generate_checkbox($choices, $field);
+                    break;
+                case 'radio':
+                    $html .= $this->generate_radio($choices, $field, 0, $labels);
+                    break;
+                case 'select':
+                default:
+                    $html .= $this->generate_select($choices, $field, 0, $labels);
+                    break;
+            }
+
+            // $html .= $this->generate_select($choices, $field, 0, $labels);
+
+
+            $html .= "</li>";
+
+            return $html;
+        }
 
         /*
          * Display various forms
