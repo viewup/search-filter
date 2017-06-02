@@ -170,7 +170,7 @@ if (!class_exists('SearchAndFilter')) {
                 }
             } else if ($submitlabel == null) {
                 if ($submit_label == null) {//default value
-                    $submit_label = "Submit";
+                    $submit_label = __("Submit");
                 }
             }
 
@@ -1117,14 +1117,14 @@ if (!class_exists('SearchAndFilter')) {
             $returnvar .= "<li>";
 
             $post_type_labels = array();
-            $post_type_labels['name'] = "Post Types";
-            $post_type_labels['singular_name'] = "Post Type";
-            $post_type_labels['search_items'] = "Search Post Types";
+            $post_type_labels['name'] = __("Post Types");
+            $post_type_labels['singular_name'] = __("Post Type");
+            $post_type_labels['search_items'] = __("Search Post Types");
 
             if ($all_items_labels[$i] != "") {
                 $post_type_labels['all_items'] = $all_items_labels[$i];
             } else {
-                $post_type_labels['all_items'] = "All Post Types";
+                $post_type_labels['all_items'] = __("All Post Types");
             }
 
             $post_type_labels = (object)$post_type_labels;
@@ -1389,7 +1389,7 @@ if (!class_exists('SearchAndFilter')) {
         {
 
             if ($args['show_option_all_sf'] == "") {
-                $show_option_all = $labels->all_items != "" ? $labels->all_items : 'All ' . $labels->name;
+                $show_option_all = $labels->all_items != "" ? $labels->all_items : __('All ' . $labels->name);
             } else {
                 $show_option_all = $args['show_option_all_sf'];
             }
@@ -1410,11 +1410,10 @@ if (!class_exists('SearchAndFilter')) {
 
             $returnvar .= '<select class="postform" name="' . SF_FPRE . $name . '">';
             if (isset($labels)) {
-                if (!$labels->all_items) {//check to see if all items has been registered in field then use this label
-                    $returnvar .= '<option class="level-0" value="' . $defaultval . '">' . $labels->all_items . '</option>';
-                } else {//check to see if all items has been registered in field then use this label with prefix of "All"
-                    $returnvar .= '<option class="level-0" value="' . $defaultval . '">All ' . $labels->name . '</option>';
-                }
+
+                $allItems = $labels->all_items ? $labels->all_items : __('All ' . $labels->name);
+
+                $returnvar .= '<option class="level-0" value="' . $defaultval . '">' . $allItems . '</option>';
             }
 
             foreach ($dropdata as $dropdown) {
@@ -1505,7 +1504,7 @@ if (!class_exists('SearchAndFilter')) {
                 if ($labels->all_items != "") {//check to see if all items has been registered in field then use this label
                     $all_items_name = $labels->all_items;
                 } else {//check to see if all items has been registered in field then use this label with prefix of "All"
-                    $all_items_name = "All " . $labels->name;
+                    $all_items_name = __("All " . $labels->name);
                 }
 
                 $returnvar .= '<li class="cat-item"><label><input class="postform" type="radio" name="' . SF_FPRE . $name . '[]" value="' . $defaultval . '"' . $checked . '> ' . $all_items_name . '</label></li>';
