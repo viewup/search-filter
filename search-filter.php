@@ -1334,7 +1334,7 @@ if ( ! class_exists( 'SearchAndFilter' ) ) {
 			$choices = [];
 			foreach ( $query as $item ) {
 				$choices[] = (object) [
-					'term_id'  => urlencode( $item->meta_value ),
+					'term_id'  => str_replace( ' ', '%20', $item->meta_value ),
 					'cat_name' => $item->meta_value
 				];
 			}
