@@ -1333,10 +1333,10 @@ if ( ! class_exists( 'SearchAndFilter' ) ) {
 			$query   = $wpdb->get_results( $querystr, OBJECT );
 			$choices = [];
 			foreach ( $query as $item ) {
-				array_push( $choices, (object) [
-					'term_id'  => $item->meta_value,
+				$choices[] = (object) [
+					'term_id'  => urlencode( $item->meta_value ),
 					'cat_name' => $item->meta_value
-				] );
+				];
 			}
 
 			$html .= "<li>";
