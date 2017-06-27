@@ -1334,7 +1334,7 @@ if ( ! class_exists( 'SearchAndFilter' ) ) {
 			$choices = [];
 			foreach ( $query as $item ) {
 				$choices[] = (object) [
-					'term_id'  => str_replace( ' ', '%20', $item->meta_value ),
+					'term_id'  => $item->meta_value,
 					'cat_name' => $item->meta_value
 				];
 			}
@@ -1472,7 +1472,7 @@ if ( ! class_exists( 'SearchAndFilter' ) ) {
 						}
 					}
 				}
-				$returnvar .= '<option class="level-0" value="' . $dropdown->term_id . '"' . $selected . '>' . $dropdown->cat_name . '</option>';
+				$returnvar .= '<option class="level-0" value="' . str_replace( ' ', '%20', $dropdown->term_id ) . '"' . $selected . '>' . $dropdown->cat_name . '</option>';
 
 			}
 			$returnvar .= "</select>";
@@ -1500,7 +1500,7 @@ if ( ! class_exists( 'SearchAndFilter' ) ) {
 						}
 					}
 				}
-				$returnvar .= '<li class="cat-item"><label><input class="postform cat-item" type="checkbox" name="' . SF_FPRE . $name . '[]" value="' . $dropdown->term_id . '"' . $checked . '> ' . $dropdown->cat_name . '</label></li>';
+				$returnvar .= '<li class="cat-item"><label><input class="postform cat-item" type="checkbox" name="' . SF_FPRE . $name . '[]" value="' . str_replace( ' ', '%20', $dropdown->term_id ) . '"' . $checked . '> ' . $dropdown->cat_name . '</label></li>';
 
 			}
 
@@ -1564,7 +1564,7 @@ if ( ! class_exists( 'SearchAndFilter' ) ) {
 						}
 					}
 				}
-				$returnvar .= '<li class="cat-item"><label><input class="postform" type="radio" name="' . SF_FPRE . $name . '[]" value="' . $dropdown->term_id . '"' . $checked . '> ' . $dropdown->cat_name . '</label></li>';
+				$returnvar .= '<li class="cat-item"><label><input class="postform" type="radio" name="' . SF_FPRE . $name . '[]" value="' . str_replace( ' ', '%20', $dropdown->term_id ) . '"' . $checked . '> ' . $dropdown->cat_name . '</label></li>';
 
 			}
 
